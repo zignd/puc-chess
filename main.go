@@ -15,13 +15,11 @@ import (
 
 const (
 	SIDE               = "side"
-	FEN                = "fen"
 	AGAINST_RANDOM_CPU = "againstRandomCPU"
 )
 
 func init() {
 	flag.String(SIDE, "white", "which side of the game the AI will play")
-	flag.String(FEN, "", "a FEN string used to initialize the game")
 	flag.Bool(AGAINST_RANDOM_CPU, false, "set to true in order for the AI to play against an automated player choosing random moves")
 
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
