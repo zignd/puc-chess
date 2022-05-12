@@ -166,13 +166,7 @@ func CloneGameTreeNode(gameTreeNode *GameTreeNode) *GameTreeNode {
 func BuildGameTreeAt(gameTreeRootNode *GameTreeNode, depth int) {
 	possibleMoves := gameTreeRootNode.Game.ValidMoves()
 	gameTreeRootNode.Children = []*GameTreeNode{}
-	iterationsCount := 0
 	for _, possibleMove := range possibleMoves {
-		iterationsCount += 1
-		limit := 30
-		if iterationsCount > limit {
-			break
-		}
 		possibleGame := CloneGameTreeNode(gameTreeRootNode)
 		possibleGame.Game.Move(possibleMove)
 		possibleGame.Evaluation = EvaluateStrongerSide(possibleGame.Game)
