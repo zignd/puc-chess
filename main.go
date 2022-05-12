@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"time"
 
 	"github.com/notnil/chess"
 	"github.com/spf13/pflag"
@@ -36,8 +37,12 @@ func main() {
 	for game.Outcome() == chess.NoOutcome {
 		// White's turn
 		gameTreeRootNode := NewGameTreeNode(game)
+		t1 := time.Now()
 		BuildGameTreeAt(gameTreeRootNode, 1)
+		fmt.Println("Time spent building game tree", time.Since(t1))
+		t2 := time.Now()
 		bestGame := AlphaBeta(gameTreeRootNode, 5, -1000000, 1000000, true)
+		fmt.Println("Time spent during AlphaBeta", time.Since(t2))
 		if bestGame == nil || bestGame.Game == nil {
 			fmt.Println("There's no best game?")
 			fmt.Println(bestGame)
@@ -87,7 +92,7 @@ func PrintBoard(game *chess.Game) {
 }
 
 func ReadMove() string {
-	fmt.Print("> ")
+	fmt.Print("Enter the move > ")
 	scanner := bufio.NewScanner(os.Stdin)
 	if scanner.Scan() {
 		return scanner.Text()
@@ -161,8 +166,13 @@ func CloneGameTreeNode(gameTreeNode *GameTreeNode) *GameTreeNode {
 func BuildGameTreeAt(gameTreeRootNode *GameTreeNode, depth int) {
 	possibleMoves := gameTreeRootNode.Game.ValidMoves()
 	gameTreeRootNode.Children = []*GameTreeNode{}
-	// println(">>> possible moves", len(possibleMoves), depth)
+	iterationsCount := 0
 	for _, possibleMove := range possibleMoves {
+		iterationsCount += 1
+		limit := 30
+		if iterationsCount > limit {
+			break
+		}
 		possibleGame := CloneGameTreeNode(gameTreeRootNode)
 		possibleGame.Game.Move(possibleMove)
 		possibleGame.Evaluation = EvaluateStrongerSide(possibleGame.Game)
