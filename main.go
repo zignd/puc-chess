@@ -29,14 +29,6 @@ func init() {
 }
 
 func main() {
-
-	// return
-
-	// fenFn, err := chess.FEN("B5R1/1P2k1P1/P4R2/8/4P2N/2N5/P1P1RP2/K7 w - - 11 70")
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// game := chess.NewGame(fenFn)
 	game := chess.NewGame()
 	PrintBoard(game)
 
@@ -52,7 +44,6 @@ func main() {
 			return
 		}
 		moveHist := bestGame.Game.MoveHistory()
-		// bestGame.Game.Positions()
 		aiMove := moveHist[len(moveHist)-2].Move
 		game.Move(aiMove)
 		PrintBoard(game)
@@ -64,15 +55,20 @@ func main() {
 				break
 			}
 		} else {
-			moveStr := ReadMove()
-			if moveStr == "r" {
-				if err := MoveRandom(game); err != nil {
-					fmt.Println(err)
-					break
-				}
-			} else {
-				if game.MoveStr(moveStr) != nil {
-					fmt.Println("Invalid move provided. It should be in the following format for example, 'd3f5'.")
+			for {
+				moveStr := ReadMove()
+				if moveStr == "r" {
+					if err := MoveRandom(game); err != nil {
+						fmt.Println(err)
+						continue
+					} else {
+						break
+					}
+				} else {
+					if err := game.MoveStr(moveStr); err != nil {
+						fmt.Printf("Invalid move provided, %s. It should be like, 'd3f5' or 'Qf5': %s\n", moveStr, err)
+						continue
+					}
 					break
 				}
 			}
