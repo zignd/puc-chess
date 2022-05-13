@@ -14,17 +14,22 @@ import (
 )
 
 const (
-	SIDE               = "side"
+	AISIDE             = "aiside"
 	AGAINST_RANDOM_CPU = "againstRandomCPU"
 )
 
+var randomizer *rand.Rand
+
 func init() {
-	flag.String(SIDE, "white", "which side of the game the AI will play")
+	flag.String(AISIDE, "white", "which side of the game the AI will play")
 	flag.Bool(AGAINST_RANDOM_CPU, false, "set to true in order for the AI to play against an automated player choosing random moves")
 
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 	viper.BindPFlags(pflag.CommandLine)
+
+	randSource := rand.NewSource(time.Now().UnixNano())
+	randomizer = rand.New(randSource)
 }
 
 func main() {
@@ -33,54 +38,88 @@ func main() {
 
 	// generate moves until game is over
 	for game.Outcome() == chess.NoOutcome {
-		// White's turn
-		gameTreeRootNode := NewGameTreeNode(game)
-		t1 := time.Now()
-		BuildGameTreeAt(gameTreeRootNode, 1)
-		fmt.Println("Time spent building game tree", time.Since(t1))
-		t2 := time.Now()
-		bestGame := AlphaBeta(gameTreeRootNode, 5, -1000000, 1000000, true)
-		fmt.Println("Time spent during AlphaBeta", time.Since(t2))
-		if bestGame == nil || bestGame.Game == nil {
-			fmt.Println("There's no best game?")
-			fmt.Println(bestGame)
-			return
-		}
-		moveHist := bestGame.Game.MoveHistory()
-		aiMove := moveHist[len(moveHist)-2].Move
-		game.Move(aiMove)
-		PrintBoard(game)
-
-		// Black's turn
-		if viper.GetBool(AGAINST_RANDOM_CPU) {
-			if err := MoveRandom(game); err != nil {
+		fmt.Println("\n# White's turn")
+		if viper.GetString(AISIDE) == "white" {
+			if err := PlayAI(game); err != nil {
 				fmt.Println(err)
 				break
 			}
 		} else {
-			for {
-				moveStr := ReadMove()
-				if moveStr == "r" {
-					if err := MoveRandom(game); err != nil {
-						fmt.Println(err)
-						continue
-					} else {
-						break
-					}
-				} else {
-					if err := game.MoveStr(moveStr); err != nil {
-						fmt.Printf("Invalid move provided, %s. It should be like, 'd3f5' or 'Qf5': %s\n", moveStr, err)
-						continue
-					}
-					break
-				}
+			if err := PlayRandomOrHuman(game); err != nil {
+				fmt.Println(err)
+				break
 			}
 		}
-		PrintBoard(game)
+
+		fmt.Println("\n# Black's turn")
+		if viper.GetString(AISIDE) == "black" {
+			if err := PlayAI(game); err != nil {
+				fmt.Println(err)
+				break
+			}
+		} else {
+			if err := PlayRandomOrHuman(game); err != nil {
+				fmt.Println(err)
+				break
+			}
+		}
 	}
 
 	fmt.Printf("The game finished. Outcome: %s. Method: %s.\n", game.Outcome(), game.Method())
 	fmt.Println("PGN:", game.String())
+}
+
+func PlayAI(game *chess.Game) error {
+	fmt.Println("# AI player")
+	gameTreeRootNode := NewGameTreeNode(game)
+	t1 := time.Now()
+	BuildGameTreeAt(gameTreeRootNode, 1)
+	fmt.Println("Time spent building game tree", time.Since(t1))
+	t2 := time.Now()
+	bestGame := AlphaBeta(gameTreeRootNode, 5, -1000000, 1000000, true)
+	fmt.Println("Time spent during AlphaBeta", time.Since(t2))
+	if bestGame == nil || bestGame.Game == nil {
+		return fmt.Errorf("it seems that there is no best game to choose")
+	}
+	moveHist := bestGame.Game.MoveHistory()
+	offset := 2
+	if viper.GetString(AISIDE) == "black" {
+		offset = 1
+	}
+	aiMove := moveHist[len(moveHist)-offset].Move
+	game.Move(aiMove)
+	PrintBoard(game)
+	return nil
+}
+
+func PlayRandomOrHuman(game *chess.Game) error {
+	if viper.GetBool(AGAINST_RANDOM_CPU) {
+		fmt.Println("# Random player")
+		if err := MoveRandom(game); err != nil {
+			return err
+		}
+	} else {
+		fmt.Println("# Human player")
+		for {
+			moveStr := ReadMove()
+			if moveStr == "r" {
+				if err := MoveRandom(game); err != nil {
+					fmt.Println(err)
+					continue
+				} else {
+					break
+				}
+			} else {
+				if err := game.MoveStr(moveStr); err != nil {
+					fmt.Printf("Invalid move provided, %s. It should be like, 'd3f5' or 'Qf5': %s\n", moveStr, err)
+					continue
+				}
+				break
+			}
+		}
+	}
+	PrintBoard(game)
+	return nil
 }
 
 func PrintBoard(game *chess.Game) {
@@ -104,7 +143,7 @@ func MoveRandom(game *chess.Game) error {
 	if len(moves) == 0 {
 		return fmt.Errorf("there are no valid moves left")
 	}
-	move := moves[rand.Intn(lenMoves)]
+	move := moves[randomizer.Intn(lenMoves)]
 	fmt.Println("Selected random move:", move.String())
 	game.Move(move)
 	return nil
