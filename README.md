@@ -1,8 +1,3 @@
 # puc-chess
 
-Igor Hipólito Vieira
-
-## Instruções
-
-* Começar a leitura do programa pelo arquivo ./main.go;
-* Execute o programa utilizando o comando `go run main.go`.
+Simple chess game that implements the Alpha-Beta algorithm. You can play against the algorithm or you can enable a randomized mode in which you can just watch the game play by itself.
